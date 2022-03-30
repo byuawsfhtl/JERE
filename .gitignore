@@ -4,3 +4,7 @@ src/**
 templates/**
 **/__pycache__/**
 BMDRecordGenerator.py
+slurm**
+bmodel
+data/
+seed/

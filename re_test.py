@@ -14,9 +14,21 @@ import BMDRecordGenerator
 bmd = BMDRecordGenerator.BMDGenerator(400, "out", 5, ["marriage","birth"])
 bmd.generate()
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+import numpy as np
+from tqdm import tqdm
+from torch.nn.parameter import Parameter
+import gc
+import copy
+from random import random as rand
 from transformers import BertTokenizer, BertModel, AlbertTokenizer, AlbertModel
 import random
-tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+
+tokenizer = BertTokenizer.from_pretrained('./seed/tokenizer')#'bert-base-multilingual-cased')
 
 def add_relation(relations, rev, search, entity, rtype):
   if search not in rev.keys():
@@ -160,31 +172,8 @@ def parse_file(filename):
 
   return dataset
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
-import numpy as np
-import matplotlib.pyplot as plt
-from torchvision import transforms, utils, datasets
-from tqdm import tqdm
-from torch.nn.parameter import Parameter
-import pdb
-import gc
-import copy
-
 aug = parse_file('out/frenchner.txt')
-print(len(aug))
-test = parse_file('all.tsv')
-print(to_add_label)
-
-# Test entity dataset
-from random import random as rand
-i = int((len(aug[0][0]) - 10) * rand())
-i = 5
-print(aug[0][0][i-5:i+5])
-print(aug[0][1][i-5:i+5])
+test = parse_file('data/all.tsv')
 
 # relation_classes = set()
 # for record in aug:
@@ -193,13 +182,9 @@ print(aug[0][1][i-5:i+5])
 # relation_classes.insert(0, 'None')
 relation_classes = ['None', 'GenderOf', 'AgeOf', 'FatherOf', 'MotherOf', 'SpouseOf', 'BirthOf', 'MarriageOf']
 rc2ind = {k: v for v, k in enumerate(relation_classes)}
-print(relation_classes)
-print(rc2ind)
 
 ner_classes = ['None', 'Name', 'Date', 'Gender', 'Age']
 ner2ind = {k: v for v, k in enumerate(ner_classes)}
-print(ner_classes)
-print(ner2ind)
 
 bio_classes = ['Out', 'In', 'Beginning']
 
@@ -248,7 +233,6 @@ class REDataset(Dataset):
     del self.data[-amount:]
 
   def subsample(self):
-    print(len(self.data))
     groups = [[] for _ in range(len(relation_classes))]
     for it in self.data:
       groups[it[3].item()].append(it)
@@ -259,7 +243,6 @@ class REDataset(Dataset):
         random.shuffle(g)
         del g[maxsize:]
       self.data.extend(g)
-    print(len(self.data))
 
 class NERDataset(Dataset):
   def __init__(self, dataset):
@@ -293,11 +276,9 @@ class NERDataset(Dataset):
     del self.data[-amount:]
 
   def subsample(self):
-    print(len(self.data))
     groups = [[] for _ in range(len(ner_classes))]
     for it in self.data:
       groups[it[2].item()].append(it)
-    print([len(g) for g in groups])
     maxsize = sorted([len(g) for g in groups])[-2] * 3
     self.data = []
     for g in groups:
@@ -305,7 +286,6 @@ class NERDataset(Dataset):
         random.shuffle(g)
         del g[maxsize:]
       self.data.extend(g)
-    print(len(self.data))
 
 #aug_dataset = REDataset(aug[:10])
 #aug_dataset.subsample()
@@ -316,11 +296,9 @@ train_re_dataset = REDataset(aug)
 val_re_dataset = REDataset(test)
 test_re_dataset = REDataset([])
 
-print(len(train_re_dataset), len(val_re_dataset), len(test_re_dataset))
 val_re_dataset.shuffle()
 val_re_dataset.transfer(train_re_dataset, len(val_re_dataset) * 6 // 10)
 val_re_dataset.transfer(test_re_dataset, len(val_re_dataset) * 1 // 2)
-print(len(train_re_dataset), len(val_re_dataset), len(test_re_dataset))
 
 train_re_dataset.subsample()
 val_re_dataset.subsample()
@@ -330,16 +308,9 @@ train_ner_dataset = NERDataset(aug)
 val_ner_dataset = NERDataset(test)
 test_ner_dataset = NERDataset([])
 
-print(len(train_ner_dataset), len(val_ner_dataset), len(test_ner_dataset))
 val_ner_dataset.shuffle()
 val_ner_dataset.transfer(train_ner_dataset, len(val_ner_dataset) * 6 // 10)
 val_ner_dataset.transfer(test_ner_dataset, len(val_ner_dataset) * 1 // 2)
-print(len(train_ner_dataset), len(val_ner_dataset), len(test_ner_dataset))
-
-# counts = [0]*5
-# for i in train_ner_dataset:
-#   counts[i[3].item()] += 1
-# print(counts)
 
 train_ner_dataset.subsample()
 val_ner_dataset.subsample()
@@ -353,23 +324,18 @@ train_ner_dataset_loader = DataLoader(train_ner_dataset, batch_size=5, pin_memor
 val_ner_dataset_loader = DataLoader(val_ner_dataset, batch_size=5, pin_memory=True, shuffle=True)
 test_ner_dataset_loader = DataLoader(test_ner_dataset, batch_size=5, pin_memory=True, shuffle=True)
 
-# tok, entities, relations = aug[10]
-# for a, b, c in relations:
-#   print(tok[a], a, b, tok[c], c)
-
 class JointModel(nn.Module):
   def __init__(self):
     super(JointModel, self).__init__()
-    self.bert = BertModel.from_pretrained("bert-base-multilingual-cased", output_hidden_states=True)
+    self.bert = BertModel.from_pretrained("./seed/bert", output_hidden_states=True) #"bert-base-multilingual-cased", output_hidden_states=True)
     size = 768 #9984 #768
     dropout = 0.5
     self.norm = nn.Sequential(
         nn.Dropout(dropout),
         nn.LayerNorm(size)
     )
-    self.classify_re = nn.Sequential(
-        nn.Linear(size*2, len(relation_classes))
-    )
+    self.classify_re_left = nn.Linear(size, len(relation_classes))
+    self.classify_re_right = nn.Linear(size, len(relation_classes))
     self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
@@ -379,11 +345,9 @@ class JointModel(nn.Module):
     out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
     out = self.norm(out)
     s = torch.arange(i.size()[0])
-    subs = out[s, i]
-    objs = out[s, j]
-    out = torch.cat([subs, objs], dim=1)
-    out = self.classify_re(out)
-    return out
+    subs = self.classify_re_left(out[s, i])
+    objs = self.classify_re_right(out[s, j])
+    return torch.add(subs, objs)
 
   def train_ner(self, tokens, i):
     out = self.bert(tokens)
@@ -523,7 +487,8 @@ def scope():
   objective = nn.CrossEntropyLoss() #weight=class_weights) # try with this later?
   optimizer = optim.Adam([
                 {'params': model.bert.parameters()},
-                {'params': model.classify_re.parameters(), 'lr': 3e-4},
+                {'params': model.classify_re_left.parameters(), 'lr': 3e-4},
+                {'params': model.classify_re_right.parameters(), 'lr': 3e-4},
                 {'params': model.lstm.parameters(), 'lr': 3e-4},
                 {'params': model.classify_ner.parameters(), 'lr': 3e-4},
                 {'params': model.classify_bio.parameters(), 'lr': 3e-4}
