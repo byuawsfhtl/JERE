@@ -16,8 +16,7 @@ bmd.generate()
 
 from transformers import BertTokenizer, BertModel, AlbertTokenizer, AlbertModel
 import random
-albert = False
-tokenizer = AlbertTokenizer.from_pretrained('qwant/fralbert-base') if albert else BertTokenizer.from_pretrained('bert-base-multilingual-cased')
+tokenizer = BertTokenizer.from_pretrained('bert-base-multilingual-cased')
 
 def add_relation(relations, rev, search, entity, rtype):
   if search not in rev.keys():
@@ -361,7 +360,7 @@ test_ner_dataset_loader = DataLoader(test_ner_dataset, batch_size=5, pin_memory=
 class JointModel(nn.Module):
   def __init__(self):
     super(JointModel, self).__init__()
-    self.bert = AlbertModel.from_pretrained("qwant/fralbert-base") if albert else BertModel.from_pretrained("bert-base-multilingual-cased", output_hidden_states=True)
+    self.bert = BertModel.from_pretrained("bert-base-multilingual-cased", output_hidden_states=True)
     size = 768 #9984 #768
     dropout = 0.5
     self.norm = nn.Sequential(
@@ -377,7 +376,7 @@ class JointModel(nn.Module):
 
   def train_re(self, tokens, i, j):
     out = self.bert(tokens)
-    out = out.last_hidden_state if albert else out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
+    out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
     out = self.norm(out)
     s = torch.arange(i.size()[0])
     subs = out[s, i]
@@ -388,24 +387,13 @@ class JointModel(nn.Module):
 
   def train_ner(self, tokens, i):
     out = self.bert(tokens)
-    out = out.last_hidden_state if albert else out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
+    out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
     out = self.norm(out)
     #out = self.lstm(out)[0]
     s = torch.arange(i.size()[0])
     #print(out.shape)
     out = out[s, i]
     return self.classify_ner(out), self.classify_bio(out)
-
-def run():
-  gc.collect()
-  test = JointModel().cuda()
-  for tokens, i, j, _ in train_re_dataset_loader:
-    test.train_re(tokens.cuda(), i.cuda(), j.cuda())
-    break 
-  for tokens, i, e, b in train_ner_dataset_loader:
-    test.train_ner(tokens.cuda(), i.cuda())
-    break 
-run()
 
 conf_re = np.zeros((len(relation_classes), len(relation_classes)), dtype=int)
 
@@ -609,5 +597,3 @@ def scope():
   test(model, 'test set', test_re_dataset_loader, test_ner_dataset_loader)
 
 scope()
-
-!ls -lh bmodel

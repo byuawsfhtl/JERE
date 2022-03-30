@@ -1,1 +1,6 @@
-src/BMDRecordGeneration
+dict/**
+out/**
+src/**
+templates/**
+**/__pycache__/**
+BMDRecordGenerator.py
