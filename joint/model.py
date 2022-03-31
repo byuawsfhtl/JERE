@@ -6,6 +6,9 @@ from transformers import BertTokenizer, BertModel
 class JointModel(nn.Module):
   def __init__(self, re_classes, ner_classes):
     super(JointModel, self).__init__()
+    self.re_classes = re_classes
+    self.ner_classes = ner_classes
+
     self.bert = BertModel.from_pretrained("./seed/bert", output_hidden_states=True) #"bert-base-multilingual-cased", output_hidden_states=True)
     size = 768 #9984 #768
     dropout = 0.5
@@ -59,7 +62,7 @@ class JointModel(nn.Module):
         if ner[i][state] * bio[i][1] > 0.25: # continue
           end += 1
         else: # end
-          entities.append((start, end, state))
+          entities.append([start, end, state])
           state = 0
       for j in range(1, num_ner):
         if ner[i][j] * bio[i][2] > 0.25:
@@ -67,5 +70,48 @@ class JointModel(nn.Module):
           start = i
           end = i
           break
+
+    left = self.classify_re_left(out)
+    right = self.classify_re_right(out)
+
+    relations = []
+    for i in range(len(entities)):
+      le = entities[i]
+      for j in range(len(entities)):
+        if i == j:
+          continue
+        re = entities[j]
+        sub = torch.add(left[le[0]], right[re[0]])
+        soft = F.softmax(sub)
+        # TODO: add masking constraints and recalculate
+        if soft[0] < 0.8:
+          soft[0] = 0
+        argmax = torch.argmax(soft).item()
+        #print(i, j, argmax, soft[argmax])
+        if argmax > 0:
+          relations.append((i, argmax, j))
+
+    # Order events, people, people attributes
+    # Will break if order of relations changes
+    relations = sorted(relations, key=lambda x:-x[1])
+
+    for l, c, r in relations:
+      if c == 7: # Marriage
+        entities[l][2] = 'MarriageDate'
+        entities[r][2] = 'SelfName'
+      elif c == 6: # Birth
+        entities[l][2] = 'BirthDate'
+        entities[r][2] = 'SelfName'
+      elif c == 5: # Spouse
+        if entities[l][2] == 'SelfName': # don't process parents
+          entities[r][2] = 'SpouseName'
+
+    for e in entities:
+      if type(e[2]) == int:
+        e[2] = self.ner_classes[e[2]]
+
+    # Todo: name and date splitting
+
+    print('\n'.join(map(str, relations)))
 
     return entities

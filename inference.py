@@ -23,4 +23,4 @@ with torch.no_grad():
     ans = model.compute(ids)
 
     for s, e, i in ans:
-        print(' '.join(tokens[s:e+1]).replace(' ##', ''), '=>', ner_classes[i])
+        print(' '.join(tokens[s:e+1]).replace(' ##', ''), '=>', i)
