@@ -48,7 +48,7 @@ def load_datasets():
         for e in entities:
             if e[1] == 'FatherName':
                 add_relation(relations, rev, 'SelfName', e, 'FatherOf')
-                #add_relation(relations, rev, 'MotherName', e, 'SpouseOf')
+                add_relation(relations, rev, 'MotherName', e, 'SpouseOf')
             elif e[1] == 'FatherAge':
                 add_relation(relations, rev, 'FatherName', e, 'AgeOf')
             elif e[1] == 'SelfGender':
@@ -61,7 +61,7 @@ def load_datasets():
                 add_relation(relations, rev, 'SpouseName', e, 'BirthOf')
             elif e[1] == 'MotherName':
                 add_relation(relations, rev, 'SelfName', e, 'MotherOf')
-                #add_relation(relations, rev, 'FatherName', e, 'SpouseOf')
+                add_relation(relations, rev, 'FatherName', e, 'SpouseOf')
             elif e[1] == 'MotherAge':
                 add_relation(relations, rev, 'MotherName', e, 'AgeOf')
             elif e[1] == 'SpouseName':
@@ -72,14 +72,14 @@ def load_datasets():
                 add_relation(relations, rev, 'SpouseName', e, 'AgeOf')
             elif e[1] == 'SpouseMotherName':
                 add_relation(relations, rev, 'SpouseName', e, 'MotherOf')
-                #add_relation(relations, rev, 'SpouseFatherName', e, 'SpouseOf')
+                add_relation(relations, rev, 'SpouseFatherName', e, 'SpouseOf')
             elif e[1] == 'SpouseMotherAge':
                 add_relation(relations, rev, 'SpouseMotherName', e, 'AgeOf')
             elif e[1] == 'SpouseFatherAge':
                 add_relation(relations, rev, 'SpouseFatherName', e, 'AgeOf')
             elif e[1] == 'SpouseFatherName':
                 add_relation(relations, rev, 'SpouseName', e, 'FatherOf')
-                #add_relation(relations, rev, 'SpouseMotherName', e, 'SpouseOf')
+                add_relation(relations, rev, 'SpouseMotherName', e, 'SpouseOf')
             elif e[1] == 'MarriageDate':
                 add_relation(relations, rev, 'SelfName', e, 'MarriageOf')
                 add_relation(relations, rev, 'SpouseName', e, 'MarriageOf')
