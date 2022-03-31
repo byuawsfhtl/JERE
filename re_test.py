@@ -171,6 +171,7 @@ def scope():
                 {'params': model.bert.parameters()},
                 {'params': model.classify_re_left.parameters(), 'lr': 3e-4},
                 {'params': model.classify_re_right.parameters(), 'lr': 3e-4},
+                {'params': model.classify_re.parameters(), 'lr': 3e-4},
                 {'params': model.lstm.parameters(), 'lr': 3e-4},
                 {'params': model.classify_ner.parameters(), 'lr': 3e-4},
                 {'params': model.classify_bio.parameters(), 'lr': 3e-4}

@@ -16,8 +16,9 @@ class JointModel(nn.Module):
         nn.Dropout(dropout),
         nn.LayerNorm(size)
     )
-    self.classify_re_left = nn.Linear(size, len(re_classes))
-    self.classify_re_right = nn.Linear(size, len(re_classes))
+    self.classify_re_left = nn.Linear(size, size)
+    self.classify_re_right = nn.Linear(size, size)
+    self.classify_re = nn.Linear(size, len(re_classes))
     self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
@@ -30,7 +31,8 @@ class JointModel(nn.Module):
     s = torch.arange(i.size()[0])
     subs = self.classify_re_left(out[s, i])
     objs = self.classify_re_right(out[s, j])
-    return torch.add(subs, objs)
+    out = subs * objs # normalize this?
+    return torch.classify_re(out)
 
   def train_ner(self, tokens, i):
     out = self.bert(tokens)
@@ -82,7 +84,7 @@ class JointModel(nn.Module):
         if i == j:
           continue
         re = entities[j]
-        sub = torch.add(left[le[0]], right[re[0]])
+        sub = self.classify_re(left[le[0]] * right[re[0]]) # todo: normalize this?
         soft = F.softmax(sub, dim=0)
         # TODO: add masking constraints and recalculate
         if soft[0] < 0.8:
