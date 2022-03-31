@@ -32,7 +32,7 @@ class JointModel(nn.Module):
     subs = self.classify_re_left(out[s, i])
     objs = self.classify_re_right(out[s, j])
     out = subs * objs # normalize this?
-    return torch.classify_re(out)
+    return self.classify_re(out)
 
   def train_ner(self, tokens, i):
     out = self.bert(tokens)
