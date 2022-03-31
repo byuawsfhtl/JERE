@@ -22,6 +22,7 @@ class JointModel(nn.Module):
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
 
+  # TODO: issues with multiple of same relation
   def train_re(self, tokens, i, j):
     out = self.bert(tokens)
     out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
@@ -82,7 +83,7 @@ class JointModel(nn.Module):
           continue
         re = entities[j]
         sub = torch.add(left[le[0]], right[re[0]])
-        soft = F.softmax(sub)
+        soft = F.softmax(sub, dim=0)
         # TODO: add masking constraints and recalculate
         if soft[0] < 0.8:
           soft[0] = 0
@@ -93,7 +94,9 @@ class JointModel(nn.Module):
 
     # Order events, people, people attributes
     # Will break if order of relations changes
-    relations = sorted(relations, key=lambda x:-x[1])
+    #order = {s: i for i, s in enumerate(['None', 'GenderOf', 'AgeOf', 'FatherOf', 'MotherOf', 'SpouseOf', 'BirthOf', 'MarriageOf'])}
+    #relations = sorted(relations, key=lambda x: order[self.re_classes(x[1])])
+    relations = sorted(relations, key=lambda x: -x[1])
 
     for l, c, r in relations:
       if c == 7: # Marriage
@@ -103,15 +106,31 @@ class JointModel(nn.Module):
         entities[l][2] = 'BirthDate'
         entities[r][2] = 'SelfName'
       elif c == 5: # Spouse
+        # l -> r due to symmetry so that first spouse is selfname
         if entities[l][2] == 'SelfName': # don't process parents
           entities[r][2] = 'SpouseName'
+      elif c == 4: # Mother
+        if entities[r][2] == 'SelfName':
+          entities[l][2] = 'MotherName'
+        elif entities[r][2] == 'SpouseName':
+          entities[l][2] = 'SpouseMotherName'
+      elif c == 3: # Father
+        if entities[r][2] == 'SelfName':
+          entities[l][2] = 'FatherName'
+        elif entities[r][2] == 'SpouseName':
+          entities[l][2] = 'SpouseFatherName'
+      elif c == 2: # Age
+        if entities[r][2][-4:] == 'Name':
+          entities[l][2] = entities[r][2][:-4] + 'Age'
+      elif c == 1: # Gender
+        if entities[r][2][-4:] == 'Name':
+          entities[l][2] = entities[r][2][:-4] + 'Gender'
 
     for e in entities:
       if type(e[2]) == int:
-        e[2] = self.ner_classes[e[2]]
+        e[2] = 'Other' + self.ner_classes[e[2]]
 
     # Todo: name and date splitting
-
-    print('\n'.join(map(str, relations)))
+    #print('\n'.join(map(str, relations)))
 
     return entities

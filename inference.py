@@ -12,6 +12,7 @@ ner2ind = {k: v for v, k in enumerate(ner_classes)}
 tokenizer = BertTokenizer.from_pretrained('./seed/tokenizer')#'bert-base-multilingual-cased')
 model = JointModel(relation_classes, ner_classes)
 model.load_state_dict(torch.load('saved/bmodel',map_location=torch.device('cpu')))
+model.eval()
 
 record = "L'an mil sept cent quatre vingt sept le vingt quatre du mois de septembre a jean george vants ruther demeurant au val pavoisse de Rougemont age de quarante huit ans a contracté mariage selon la forme du st concile de trente et les dits royaux avec Marianne cravat fille de jean claude cravat et de sue francoise Bobay de st germain agée de vingt quatre ans en presence de jean claude cravat de jacques cordier jacques montavon soussignés et de jean vantsruther illiterê"
 
