@@ -16,11 +16,17 @@ class JointModel(nn.Module):
         nn.Dropout(dropout),
         nn.LayerNorm(size)
     )
-    self.classify_re_left = nn.Linear(size, len(re_classes))
-    self.classify_re_right = nn.Linear(size, len(re_classes))
+    #self.classify_re_left = nn.Linear(size, len(re_classes))
+    #self.classify_re_right = nn.Linear(size, len(re_classes))
     #self.classify_re_left = nn.Linear(size, size)
     #self.classify_re_right = nn.Linear(size, size)
-    #self.classify_re = nn.Linear(size, len(re_classes))
+    self.classify_re = nn.Sequential(
+      nn.Linear(size*2, size*2),
+        nn.Dropout(dropout),
+      nn.Linear(size*2, size*2),
+        nn.Dropout(dropout),
+      nn.Linear(size, len(re_classes))
+    )
     self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
@@ -31,10 +37,10 @@ class JointModel(nn.Module):
     out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
     out = self.norm(out)
     s = torch.arange(i.size()[0])
-    subs = self.classify_re_left(out[s, i])
-    objs = self.classify_re_right(out[s, j])
+    #subs = self.classify_re_left(out[s, i])
+    #objs = self.classify_re_right(out[s, j])
     #out = subs * objs # normalize this?
-    return subs + objs #self.classify_re(out)
+    return self.classify_re(torch.cat([out[s, i], out[s, j]], dim=1))
 
   def train_ner(self, tokens, i):
     out = self.bert(tokens)
