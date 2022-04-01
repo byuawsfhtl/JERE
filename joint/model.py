@@ -16,9 +16,11 @@ class JointModel(nn.Module):
         nn.Dropout(dropout),
         nn.LayerNorm(size)
     )
-    self.classify_re_left = nn.Linear(size, size)
-    self.classify_re_right = nn.Linear(size, size)
-    self.classify_re = nn.Linear(size, len(re_classes))
+    self.classify_re_left = nn.Linear(size, len(re_classes))
+    self.classify_re_right = nn.Linear(size, len(re_classes))
+    #self.classify_re_left = nn.Linear(size, size)
+    #self.classify_re_right = nn.Linear(size, size)
+    #self.classify_re = nn.Linear(size, len(re_classes))
     self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
@@ -31,8 +33,8 @@ class JointModel(nn.Module):
     s = torch.arange(i.size()[0])
     subs = self.classify_re_left(out[s, i])
     objs = self.classify_re_right(out[s, j])
-    out = subs * objs # normalize this?
-    return self.classify_re(out)
+    #out = subs * objs # normalize this?
+    return subs + objs #self.classify_re(out)
 
   def train_ner(self, tokens, i):
     out = self.bert(tokens)
@@ -62,17 +64,24 @@ class JointModel(nn.Module):
     entities = []
     for i in range(words):
       if state > 0:
-        if ner[i][state] * bio[i][1] > 0.25: # continue
+        if ner[i][state] > 0.5: # continue
           end += 1
         else: # end
           entities.append([start, end, state])
           state = 0
-      for j in range(1, num_ner):
-        if ner[i][j] * bio[i][2] > 0.25:
-          state = j
-          start = i
-          end = i
-          break
+      if i-start > 1: # block single tokens as unlikely
+        for j in range(1, num_ner):
+          if state != j and (ner[i][j] > 0.5):
+            if state != 0:
+              if end == i:
+                end = i-1
+              entities.append([start, end, state])
+            #print(state, j, len(entities), ner[i].numpy(), bio[i].numpy())
+            state = j
+            start = i
+            end = i
+            break
+    # append last
 
     left = self.classify_re_left(out)
     right = self.classify_re_right(out)
@@ -84,7 +93,8 @@ class JointModel(nn.Module):
         if i == j:
           continue
         re = entities[j]
-        sub = self.classify_re(left[le[0]] * right[re[0]]) # todo: normalize this?
+        #sub = self.classify_re(left[le[0]] * right[re[0]]) # todo: normalize this?
+        sub = left[le[0]] + right[re[0]]
         soft = F.softmax(sub, dim=0)
         # TODO: add masking constraints and recalculate
         if soft[0] < 0.8:
@@ -92,13 +102,16 @@ class JointModel(nn.Module):
         argmax = torch.argmax(soft).item()
         #print(i, j, argmax, soft[argmax])
         if argmax > 0:
+          #print(i, j, argmax, soft[argmax])
           relations.append((i, argmax, j))
 
     # Order events, people, people attributes
     # Will break if order of relations changes
     #order = {s: i for i, s in enumerate(['None', 'GenderOf', 'AgeOf', 'FatherOf', 'MotherOf', 'SpouseOf', 'BirthOf', 'MarriageOf'])}
     #relations = sorted(relations, key=lambda x: order[self.re_classes(x[1])])
-    relations = sorted(relations, key=lambda x: -x[1])
+    relations = sorted(relations, key=lambda x: (-x[1], -abs(x[0] - x[2])))
+
+    #print(relations)
 
     for l, c, r in relations:
       if c == 7: # Marriage
@@ -109,23 +122,26 @@ class JointModel(nn.Module):
         entities[r][2] = 'SelfName'
       elif c == 5: # Spouse
         # l -> r due to symmetry so that first spouse is selfname
-        if entities[l][2] == 'SelfName': # don't process parents
+        if type(entities[l][2]) == int or entities[l][2] == 'SelfName': # don't process parents
+          entities[l][2] = 'SelfName'
           entities[r][2] = 'SpouseName'
       elif c == 4: # Mother
-        if entities[r][2] == 'SelfName':
+        if type(entities[r][2]) == int or entities[r][2] == 'SelfName':
+          entities[r][2] = 'SelfName'
           entities[l][2] = 'MotherName'
         elif entities[r][2] == 'SpouseName':
           entities[l][2] = 'SpouseMotherName'
       elif c == 3: # Father
-        if entities[r][2] == 'SelfName':
+        if type(entities[r][2]) == int or entities[r][2] == 'SelfName':
+          entities[r][2] = 'SelfName'
           entities[l][2] = 'FatherName'
         elif entities[r][2] == 'SpouseName':
           entities[l][2] = 'SpouseFatherName'
       elif c == 2: # Age
-        if entities[r][2][-4:] == 'Name':
+        if type(entities[r][2]) == str and entities[r][2][-4:] == 'Name':
           entities[l][2] = entities[r][2][:-4] + 'Age'
       elif c == 1: # Gender
-        if entities[r][2][-4:] == 'Name':
+        if type(entities[r][2]) == str and entities[r][2][-4:] == 'Name':
           entities[l][2] = entities[r][2][:-4] + 'Gender'
 
     for e in entities:
