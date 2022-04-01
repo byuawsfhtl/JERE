@@ -25,7 +25,7 @@ class JointModel(nn.Module):
         nn.Dropout(dropout),
       nn.Linear(size*2, size*2),
         nn.Dropout(dropout),
-      nn.Linear(size, len(re_classes))
+      nn.Linear(size*2, len(re_classes))
     )
     self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
