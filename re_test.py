@@ -182,6 +182,7 @@ def scope():
   accuracy_ner = 0
 
   accuracy_bio = 0
+  accum = 5
   earlystop = accum * 300 # more efficient this way
 
   epoch = 0
@@ -193,7 +194,6 @@ def scope():
     optimizer.zero_grad()
     #print(conf)
 
-    accum = 5
     loop = tqdm(total=min([len(train_ner_dataset_loader), earlystop]))
     batch = 0
     for ner_data in train_ner_dataset_loader:
@@ -262,8 +262,7 @@ def scope():
 
     optimizer.zero_grad()
     #print(conf)
-
-    accum = 5
+    
     loop = tqdm(total=min([len(train_re_dataset_loader), earlystop]))
     batch = 0
     for re_data in train_re_dataset_loader:
