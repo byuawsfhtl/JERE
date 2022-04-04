@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertTokenizer, BertModel
+import copy
 
 class JointModel(nn.Module):
   def __init__(self, re_classes, ner_classes):
@@ -10,6 +11,7 @@ class JointModel(nn.Module):
     self.ner_classes = ner_classes
 
     self.bert = BertModel.from_pretrained("./seed/bert", output_hidden_states=True) #"bert-base-multilingual-cased", output_hidden_states=True)
+    self.bert2 = copy.deepcopy(self.bert)
     size = 768 #9984 #768
     dropout = 0.5
     self.norm = nn.Sequential(
@@ -18,29 +20,26 @@ class JointModel(nn.Module):
     )
     #self.classify_re_left = nn.Linear(size, len(re_classes))
     #self.classify_re_right = nn.Linear(size, len(re_classes))
-    #self.classify_re_left = nn.Linear(size, size)
-    #self.classify_re_right = nn.Linear(size, size)
+    self.classify_re_left = nn.Linear(size, size)
+    self.classify_re_right = nn.Linear(size, size)
     self.classify_re = nn.Sequential(
-      nn.Linear(size*2, size*2),
-        nn.Dropout(dropout),
-      nn.Linear(size*2, size*2),
-        nn.Dropout(dropout),
-      nn.Linear(size*2, len(re_classes))
+      nn.Linear(size, len(re_classes))
     )
-    self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
+    #self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
 
   # TODO: issues with multiple of same relation
   def train_re(self, tokens, i, j):
-    out = self.bert(tokens)
+    out = self.bert2(tokens)
     out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
     out = self.norm(out)
     s = torch.arange(i.size()[0])
-    #subs = self.classify_re_left(out[s, i])
-    #objs = self.classify_re_right(out[s, j])
-    #out = subs * objs # normalize this?
-    return self.classify_re(torch.cat([out[s, i], out[s, j]], dim=1))
+
+    subs = self.classify_re_left(out[s, i])
+    objs = self.classify_re_right(out[s, j])
+    out = subs * objs # normalize this?
+    return self.classify_re(out)
 
   def train_ner(self, tokens, i):
     out = self.bert(tokens)
@@ -89,6 +88,10 @@ class JointModel(nn.Module):
             break
     # append last
 
+    out = self.bert2(tokens.unsqueeze(0))
+    out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
+    out = self.norm(out)[0]
+
     left = self.classify_re_left(out)
     right = self.classify_re_right(out)
 
@@ -99,11 +102,15 @@ class JointModel(nn.Module):
         if i == j:
           continue
         re = entities[j]
-        #sub = self.classify_re(left[le[0]] * right[re[0]]) # todo: normalize this?
-        sub = left[le[0]] + right[re[0]]
+        sub = self.classify_re(left[le[0]] * right[re[0]]) # todo: normalize this?
+        #sub = self.classify_re(torch.cat([out[le[0]], out[re[0]]], dim=1))
+        #sub = left[le[0]] + right[re[0]]
         soft = F.softmax(sub, dim=0)
+
         # TODO: add masking constraints and recalculate
-        if soft[0] < 0.8:
+        
+
+        if soft[0] < 0.8: # check this
           soft[0] = 0
         argmax = torch.argmax(soft).item()
         #print(i, j, argmax, soft[argmax])

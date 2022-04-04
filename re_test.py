@@ -171,8 +171,8 @@ def scope():
                 {'params': model.bert.parameters()},
                 #{'params': model.classify_re_left.parameters(), 'lr': 3e-4},
                 #{'params': model.classify_re_right.parameters(), 'lr': 3e-4},
-                {'params': model.classify_re.parameters(), 'lr': 3e-4},
-                {'params': model.lstm.parameters(), 'lr': 3e-4},
+                #{'params': model.classify_re.parameters(), 'lr': 3e-4},
+                #{'params': model.lstm.parameters(), 'lr': 3e-4},
                 {'params': model.classify_ner.parameters(), 'lr': 3e-4},
                 {'params': model.classify_bio.parameters(), 'lr': 3e-4}
               ], lr=3e-5)
@@ -193,22 +193,19 @@ def scope():
     #print(conf)
 
     accum = 5
-    earlystop = accum * 300 # more efficient this way
-    loop = tqdm(total=min([len(train_re_dataset_loader), len(train_ner_dataset_loader), earlystop]))
+    earlystop = 500000 #accum * 300 # more efficient this way
+    loop = tqdm(total=min([len(train_ner_dataset_loader), earlystop]))
     batch = 0
-    for re_data, ner_data in zip(train_re_dataset_loader, train_ner_dataset_loader):
+    for ner_data in train_ner_dataset_loader:
       batch += 1
-
-      accuracy_re += train_re(model, objective, *re_data, True)
 
       sub_ner, sub_bio = train_ner(model, objective, *ner_data, True)
       accuracy_ner += sub_ner
       accuracy_bio += sub_bio
 
       if batch % accum == 0:
-        loop.set_description('training epoch {}: re acc:{:.3f} ner acc:{:.3f} bio acc:{:.3f}'.format(
-            epoch, accuracy_re / accum, accuracy_ner / accum, accuracy_bio / accum))
-        accuracy_re = 0
+        loop.set_description('training ner epoch {}: ner acc:{:.3f} bio acc:{:.3f}'.format(
+            epoch, accuracy_ner / accum, accuracy_bio / accum))
         accuracy_ner = 0
         accuracy_bio = 0
         optimizer.step()
@@ -221,7 +218,75 @@ def scope():
 
     loop.close()
 
-    combo = test(model, 'validation epoch ' + str(epoch), val_re_dataset_loader, val_ner_dataset_loader)
+    combo = test(model, 'validation ner epoch ' + str(epoch), val_re_dataset_loader, val_ner_dataset_loader)
+
+    print(combo)
+
+    if combo > maxcombo:
+      print('Saving model...')
+      torch.save(model.state_dict(), 'bmodel')
+      maxcombo = combo
+      lastbest = 0
+    else:
+      lastbest += 1
+      if lastbest >= 5:
+        break
+
+  print('Loading best model...')
+  model.load_state_dict(torch.load('bmodel'))
+  model.bert2 = copy.deepcopy(model.bert) # weight transfer
+
+    #class_weights = torch.FloatTensor([1, 1, 1, 1, 1, 1, 1, 1]).cuda()
+  objective = nn.CrossEntropyLoss() #weight=class_weights) # try with this later?
+  optimizer = optim.Adam([
+                {'params': model.bert2.parameters()},
+                {'params': model.classify_re_left.parameters(), 'lr': 3e-4},
+                {'params': model.classify_re_right.parameters(), 'lr': 3e-4},
+                {'params': model.classify_re.parameters(), 'lr': 3e-4},
+                #{'params': model.lstm.parameters(), 'lr': 3e-4},
+                #{'params': model.classify_ner.parameters(), 'lr': 3e-4},
+                #{'params': model.classify_bio.parameters(), 'lr': 3e-4}
+              ], lr=3e-5)
+  
+  accuracy_re = 0
+
+  accuracy_ner = 0
+
+  accuracy_bio = 0
+
+  epoch = 0
+  lastbest = 0
+  maxcombo = 0
+  while epoch < 100:#for epoch in range(1,5):
+    epoch += 1
+
+    optimizer.zero_grad()
+    #print(conf)
+
+    accum = 5
+    earlystop = 500000 #accum * 300 # more efficient this way
+    loop = tqdm(total=min([len(train_re_dataset_loader), earlystop]))
+    batch = 0
+    for re_data in train_re_dataset_loader:
+      batch += 1
+
+      accuracy_re += train_re(model, objective, *re_data, True)
+
+      if batch % accum == 0:
+        loop.set_description('training re epoch {}: re acc:{:.3f}'.format(
+            epoch, accuracy_re / accum, accuracy_ner / accum, accuracy_bio / accum))
+        accuracy_re = 0
+        optimizer.step()
+        optimizer.zero_grad()
+
+      loop.update(1)
+
+      if batch == earlystop:
+          break
+
+    loop.close()
+
+    combo = test(model, 'validation re epoch ' + str(epoch), val_re_dataset_loader, val_ner_dataset_loader)
 
     print(combo)
 
