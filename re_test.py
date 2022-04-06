@@ -295,7 +295,7 @@ def scope():
       lastbest = 0
     else:
       lastbest += 1
-      if lastbest >= 3:
+      if lastbest >= 5:
         break
 
   # Done training

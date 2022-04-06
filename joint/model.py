@@ -25,7 +25,6 @@ class JointModel(nn.Module):
     self.classify_re = nn.Sequential(
       nn.Linear(size, len(re_classes))
     )
-    #self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
 
