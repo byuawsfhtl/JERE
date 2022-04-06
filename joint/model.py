@@ -25,11 +25,9 @@ class JointModel(nn.Module):
     self.classify_re = nn.Sequential(
       nn.Linear(size, len(re_classes))
     )
-    #self.lstm = nn.LSTM(size, size, num_layers=1, batch_first=True, dropout=dropout, bidirectional=False)
     self.classify_ner = nn.Linear(size, len(ner_classes))
     self.classify_bio = nn.Linear(size, 3)
 
-  # TODO: issues with multiple of same relation
   def train_re(self, tokens, i, j):
     out = self.bert2(tokens)
     out = out[2][-1] #torch.cat(out[2], dim=2) # test this on all hidden layers
