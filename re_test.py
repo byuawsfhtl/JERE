@@ -34,7 +34,7 @@ import joint.dataset # todo: clean this up with relation_classes use
 relation_classes = ['None', 'GenderOf', 'AgeOf', 'FatherOf', 'MotherOf', 'SpouseOf', 'BirthOf', 'MarriageOf']
 rc2ind = {k: v for v, k in enumerate(relation_classes)}
 
-ner_classes = ['None', 'Name', 'Date', 'Gender', 'Age']
+ner_classes = ['None', 'Name', 'Year', 'Month', 'Day', 'Gender', 'Age']
 ner2ind = {k: v for v, k in enumerate(ner_classes)}
 
 bio_classes = ['Out', 'In', 'Beginning']

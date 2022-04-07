@@ -18,10 +18,8 @@ def load_datasets():
     relation_classes = ['None', 'GenderOf', 'AgeOf', 'FatherOf', 'MotherOf', 'SpouseOf', 'BirthOf', 'MarriageOf']
     rc2ind = {k: v for v, k in enumerate(relation_classes)}
 
-    ner_classes = ['None', 'Name', 'Date', 'Gender', 'Age']
+    ner_classes = ['None', 'Name', 'Year', 'Month', 'Day', 'Gender', 'Age']
     ner2ind = {k: v for v, k in enumerate(ner_classes)}
-
-
 
     def add_relation(relations, rev, search, entity, rtype):
         if search not in rev.keys():
@@ -55,10 +53,10 @@ def load_datasets():
                 add_relation(relations, rev, 'SelfName', e, 'GenderOf')
             elif e[1] == 'SpouseGender':
                 add_relation(relations, rev, 'SpouseName', e, 'GenderOf')
-            elif e[1] == 'BirthDate':
-                add_relation(relations, rev, 'SelfName', e, 'BirthOf')
-            elif e[1] == 'SpouseBirthDate':
+            elif 'SpouseBirth' in e[1]:
                 add_relation(relations, rev, 'SpouseName', e, 'BirthOf')
+            elif 'Birth' in e[1]: # not spouse birth
+                add_relation(relations, rev, 'SelfName', e, 'BirthOf')
             elif e[1] == 'MotherName':
                 add_relation(relations, rev, 'SelfName', e, 'MotherOf')
                 #add_relation(relations, rev, 'FatherName', e, 'SpouseOf')
@@ -80,7 +78,7 @@ def load_datasets():
             elif e[1] == 'SpouseFatherName':
                 add_relation(relations, rev, 'SpouseName', e, 'FatherOf')
                 #add_relation(relations, rev, 'SpouseMotherName', e, 'SpouseOf')
-            elif e[1] == 'MarriageDate':
+            elif 'Marriage' in e[1]:
                 add_relation(relations, rev, 'SelfName', e, 'MarriageOf')
                 add_relation(relations, rev, 'SpouseName', e, 'MarriageOf')
             elif e[1] == 'SelfAge':
@@ -112,27 +110,34 @@ def load_datasets():
                 cur_entities = []
                 simp_entities = []
 
+            #print(parts)
             #print(parts, cur_entities)
 
-            parts[1] = parts[1].replace('Surname', 'Name')
-            parts[1] = parts[1].replace('GivenName', 'Name')
-            parts[1] = parts[1].replace('Person', 'Name')
-            parts[1] = parts[1].replace('Year', 'Date')
-            parts[1] = parts[1].replace('Month', 'Date')
-            parts[1] = parts[1].replace('Day', 'Date')
-            if parts[1] == 'Name':
-                parts[1] = 'SelfName'
-
-            if 'Name' in parts[1]:
+            # Use for picking ner tags
+            if 'Name' in parts[1] or 'Person' in parts[1]:
                 sub = 'Name'
-            elif 'Date' in parts[1]:
-                sub = 'Date'
+            elif 'Year' in parts[1]:
+                sub = 'Year'
+            elif 'Month' in parts[1]:
+                sub = 'Month'
+            elif 'Day' in parts[1]:
+                sub = 'Day'
             elif 'Gender' in parts[1]:
                 sub = 'Gender'
             elif 'Age' in parts[1]:
                 sub = 'Age'
             else:
                 sub = 'None'
+
+            # Use for computing relationships
+            parts[1] = parts[1].replace('Surname', 'Name')
+            parts[1] = parts[1].replace('GivenName', 'Name')
+            parts[1] = parts[1].replace('Person', 'Name')
+            #parts[1] = parts[1].replace('Year', 'Date')
+            #parts[1] = parts[1].replace('Month', 'Date')
+            #parts[1] = parts[1].replace('Day', 'Date')
+            if parts[1] == 'Name':
+                parts[1] = 'SelfName'
             #elif 'Prefix' in parts[1]:
             #  sub = 'Prefix'
 
