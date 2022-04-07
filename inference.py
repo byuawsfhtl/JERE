@@ -9,19 +9,16 @@ rc2ind = {k: v for v, k in enumerate(relation_classes)}
 ner_classes = ['None', 'Name', 'Year', 'Month', 'Day', 'Gender', 'Age']
 ner2ind = {k: v for v, k in enumerate(ner_classes)}
 
-tokenizer = BertTokenizer.from_pretrained('./seed/tokenizer')#'bert-base-multilingual-cased')
 model = JointModel(relation_classes, ner_classes)
-model.load_state_dict(torch.load('saved/bmodel-split2',map_location=torch.device('cpu')))
+model.load_state_dict(torch.load('saved/bmodel-date',map_location=torch.device('cpu')))
 model.eval()
 
-record = "Làn mil huit cent quarante huit le vingt deux Avril à huit heures du matin , pardevant nous Jean Baptiste Lamboley Maire officier de l' Etat civil de la commune de Giromagny Cheflien de Canton , Arrondissement de Belfort , Département du haut Ehin en comparu Jean Baptiste Mouge not li perand agé de trente cing ans domicilié en cette commune . lequel nous a présenté un enfant du séxe masculin quél déclaré être né cejourd ' hui é une heure du matin en son domiciles auguartier du hautôt de cette Commune ddelui déclarant et de Marie Francois Thomme son époux sans profession agée de trente trois ans domiciliée en cette Commune et au quel il a déclaré donne les prénoms de Charles Jean Baptiste . Lesquelles présentation et déclarations faites en présence de Joseph Honard employé de burean agé de cinquante cing ans et d' Alexandre Honard coutreona être de dévid âge agé de trente un ans les deux temoins domiciliés en cette commune Etout le comparant les temoins sus dénommes signé avec nous le présent acte immiédiatement aprés que nous en avons donné lecture"
+model.load_tokenizer()
 
-tokens = tokenizer.tokenize(record)
-
-ids = torch.tensor(tokenizer.convert_tokens_to_ids(tokens))
+record = "L'an mil huit cent soixante treize le six Octobre a neuf heures du matin pardevant nous Charles Prenez maire et officier de L'Etat civil de la commune de Mont bouton canton de Delle arrondissement de Belfort Département du Haut Rhin est comparu Marguerite Rayot sage femme âgée de trente neuf ans domicilice a Vandoncourt laquelle nous a présente un enfant du sexe masculin qu'elle déclare etre né dans la maison de Francois Contesse en cette commune cejourd ' hui a six heures du matin de Francois Scherrer actuellement militaire âgé de vingt cing ans et de Madeleine Philippe son epouse ménagere âgée de trente ans domicilicé en cette commune et auquel elle a declare vouloir donner les prenoms de Francois Havier lesquelles présentation et déclaration faites en présence de Havier Valles ouvrier de fabrique âgé de vingt un ans et de Henri Monnier Instituteur primaire âgé de cinquante ans les deux domicilies a Montbouton temoins choisis par la déclarant et ont la déclarante et les témoins signé avec nous le présente acte de naissance apres qu'il leur en a ete fait lecture"
 
 with torch.no_grad():
-    ans = model.compute(ids)
+    ans = model.compute(record)
 
-    for s, e, i in ans:
-        print(' '.join(tokens[s:e+1]).replace(' ##', ''), '=>', i)
+    #for pair in ans:
+    #    print(pair)
