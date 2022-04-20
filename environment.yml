@@ -66,4 +66,3 @@ dependencies:
   - yaml=0.2.5=h7b6447c_0
   - zipp=3.7.0=pyhd3eb1b0_0
   - zlib=1.2.11=h7f8727e_4
-prefix: /home/lawry/anaconda3/envs/pure
