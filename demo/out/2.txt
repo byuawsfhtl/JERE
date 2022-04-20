@@ -1,0 +1,15 @@
+OtherYear	mil huit soixante quinze
+OtherDay	huit
+OtherMonth	octobre
+OtherPerson	Henri Prenat
+FatherGivenName	Sylvestre
+FatherAge	vingt - cing
+SelfGender	féminin
+OtherPerson	Emile Biétry
+BirthDay	sept
+BirthMonth	octobre
+MotherGivenName	Hélana
+MotherAge	vingt trois
+SelfGivenName	Marie Felicie
+OtherPerson	Biétry Emile
+OtherPerson	Hennin Joseph

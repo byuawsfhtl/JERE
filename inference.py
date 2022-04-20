@@ -7,11 +7,11 @@ import editdistance
 from collections import defaultdict
 from tqdm import tqdm
 
-indir = 'saved/demo-in/'
-preddir = 'saved/preds-out/'
-compdir = 'saved/demo-out/'
+indir = 'demo/in/'
+preddir = 'demo/out/'
+#compdir = 'saved/demo-out/'
 
-blocked_comps = set([])
+#blocked_comps = set([])
 
 relation_classes = ['None', 'GenderOf', 'AgeOf', 'FatherOf', 'MotherOf', 'SpouseOf', 'BirthOf', 'MarriageOf']
 rc2ind = {k: v for v, k in enumerate(relation_classes)}
@@ -20,7 +20,7 @@ ner_classes = ['None', 'Name', 'Year', 'Month', 'Day', 'Gender', 'Age']
 ner2ind = {k: v for v, k in enumerate(ner_classes)}
 
 model = JointModel(relation_classes, ner_classes)
-model.load_state_dict(torch.load('saved/bmodel-date',map_location=torch.device('cpu')))
+model.load_state_dict(torch.load('saved/bmodel',map_location=torch.device('cpu')))
 model.eval()
 
 model.load_tokenizer()
@@ -29,12 +29,12 @@ record = "Le dimanche treize juillet mil huit ce nt vingt huit alheure a midi me
 
 with torch.no_grad():
 
-    correct = 0
-    incorrect = 0
-    extra = 0
+    # correct = 0
+    # incorrect = 0
+    # extra = 0
 
-    missed_classes = defaultdict(lambda: 0)
-    extra_classes = defaultdict(lambda: 0)
+    # missed_classes = defaultdict(lambda: 0)
+    # extra_classes = defaultdict(lambda: 0)
 
     files = sorted(os.listdir(indir))
     loop = tqdm(total=len(files))
@@ -57,40 +57,36 @@ with torch.no_grad():
             for text, name in preds:
                 f.write(name + '\t' + text + '\n')
 
-        cfile = compdir + file
-        expected = []
-        with open(cfile, 'r') as f:
-            for line in f:
-                name, text = line.strip().split('\t')
-                if name not in blocked_comps:
-                    expected.append((text, name))
+        # cfile = compdir + file
+        # expected = []
+        # with open(cfile, 'r') as f:
+        #     for line in f:
+        #         name, text = line.strip().split('\t')
+        #         if name not in blocked_comps:
+        #             expected.append((text, name))
 
-        for j in range(len(expected)-1, -1, -1):
-            et, en = expected[j]
-            for i in range(len(preds)-1, -1, -1):
-                pt, pn = preds[i]
+        # for j in range(len(expected)-1, -1, -1):
+        #     et, en = expected[j]
+        #     for i in range(len(preds)-1, -1, -1):
+        #         pt, pn = preds[i]
 
-                if en == pn and editdistance.eval(et, pt) / len(et) < 0.2:
-                    #print(i, j, len(preds), len(expected))
-                    del preds[i]
-                    del expected[j]
-                    correct += 1
-                    break
+        #         if en == pn and et == pt:#editdistance.eval(et, pt) / len(et) < 0.2:
+        #             #print(i, j, len(preds), len(expected))
+        #             del preds[i]
+        #             del expected[j]
+        #             correct += 1
+        #             break
         
-        incorrect += len(expected)
-        extra += len(preds)
-        for exp in expected:
-            missed_classes[exp[1]]+=1
-        for p in preds:
-            extra_classes[p[1]]+=1
+        # incorrect += len(expected)
+        # extra += len(preds)
+        # for exp in expected:
+        #     missed_classes[exp[1]]+=1
+        # for p in preds:
+        #     extra_classes[p[1]]+=1
         loop.update(1)
     loop.close()
 
 
-    print(correct, incorrect, extra)
-    print(extra_classes)
-    print(missed_classes)
-
-
-    #for pair in ans:
-    #    print(pair)
+    #print(correct, incorrect, extra)
+    #print(extra_classes)
+    #print(missed_classes)
