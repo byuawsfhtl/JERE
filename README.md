@@ -26,7 +26,7 @@ Currently supported RE classes are:
 
 These labels are inferred from the more fine grain labels contained in the training data. A sample file will be provided as an example.
 
-Run `re_test.py` to train the model. The training loop will train NER first, then RE. The validation loop will check accuracy on both tasks each epoch.
+Run `train.py` to train the model. The training loop will train NER first, then RE. The validation loop will check accuracy on both tasks each epoch.
 
 ## Methodolgy
 
