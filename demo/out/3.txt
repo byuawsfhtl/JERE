@@ -1,0 +1,15 @@
+OtherYear	mil huit cent soixante - quinze
+OtherDay	vingt cing
+OtherMonth	octobre
+OtherPerson	Henri Prenat
+FatherGivenName	Robert
+FatherAge	quarante deux
+SelfGender	masculin
+OtherPerson	Lucroix veuve
+BirthDay	vingt cing
+BirthMonth	octobre
+MotherGivenName	Marceline
+MotherAge	trente - huit
+SelfGivenName	Louis Céléstin
+OtherPerson	Lacroix Eugéne
+OtherPerson	Biétry Frnacois

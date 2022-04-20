@@ -1,0 +1,17 @@
+OtherYear	mil huit cent soixante - quinze
+OtherDay	vingt - neuf
+OtherMonth	septembre
+OtherPerson	Henri Trenat
+OtherPerson	Marguerite Rayot
+SelfGender	feminin
+OtherPerson	Xavier Reset
+BirthDay	vingt neuf
+BirthMonth	septembre
+FatherGivenName	Louis
+FatherSurname	Bandelier
+FatherAge	vingt - quatre
+MotherGivenName	Hortense
+MotherAge	vingt huit
+SelfGivenName	Jeanne Marie Louise
+OtherPerson	Bandelier Lucien
+OtherPerson	Racine Valenlin
