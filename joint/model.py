@@ -63,6 +63,9 @@ class JointModel(nn.Module):
 
     tokens_raw = self.tokenizer.tokenize(record)
 
+    if len(tokens_raw) > 512:
+      return None
+
     tokens = torch.tensor(self.tokenizer.convert_tokens_to_ids(tokens_raw))
 
     out = self.bert(tokens.unsqueeze(0))
@@ -228,7 +231,7 @@ class JointModel(nn.Module):
       return len(parts) == 1
 
     answer = []
-    print(tokens_raw)
+    #print(tokens_raw)
     for s, e, i in entities:
         #print(s, e, i)
         while tokens_raw[s].startswith('##'):
@@ -247,11 +250,11 @@ class JointModel(nn.Module):
             answer.append((' '.join(parts), i[:-4] + 'GivenName'))
           else:
             answer.append((' '.join(parts[:-1]), i[:-4] + 'GivenName'))
-            print(answer[-1])
+            #print(answer[-1])
             answer.append((' '.join(parts[-1:]), i[:-4] + 'Surname'))
         else:
           answer.append((text, i))
 
-        print(s, e, answer[-1])
+        #print(s, e, answer[-1])
 
     return answer
