@@ -1,7 +1,7 @@
 import tensorflow as tf
 from sklearn.utils import class_weight
 
-class temp():
+class Tools():
   def __init__(self,y_true):
     self.class_weights=dict(enumerate(list(class_weight.compute_class_weight('balanced', 
                                                      classes=np.unique(y_true),
